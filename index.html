@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SparkingTiming</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- QR Code library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode.js@1.0.0/qrcode.min.js"></script>
+    <!-- Chart.js for energy curve -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-content">
+            <div class="logo">SparkingTiming</div>
+            <a href="#" class="explore-more">探索更多</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- User Input Section -->
+        <section class="input-section">
+            <div class="input-group">
+                <label>姓名</label>
+                <input type="text" placeholder="Please enter your name">
+            </div>
+            <div class="input-group">
+                <label>邮箱</label>
+                <input type="text" placeholder="Please enter your email">
+            </div>
+            <div class="input-group">
+                <label>电话</label>
+                <input type="text" placeholder="000-000-0000">
+            </div>
+            <div class="input-group">
+                <label>生日</label>
+                <input type="date" id="birthday" placeholder="MM/DD/YYYY" class="date-input">
+            </div>
+            <button class="submit-btn">推演</button>
+        </section>
+
+        <!-- Energy Curve Section -->
+        <section class="energy-section">
+            <div class="legend">
+                <div class="legend-item">
+                    <span class="legend-color blue"></span>
+                    <span>健康</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color purple"></span>
+                    <span>事业</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color pink"></span>
+                    <span>爱情</span>
+                </div>
+            </div>
+            <canvas id="energyChart"></canvas>
+        </section>
+
+
+        <!-- Floating Animation Section -->
+        <div class="floating-container">
+            <div class="floating-item">Energy</div>
+            <div class="floating-item">Flow</div>
+            <div class="floating-item">Power</div>
+            <div class="floating-item">Efficiency</div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="api.js"></script>
+    <script src="chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html> 

@@ -717,7 +717,7 @@ class BirthdayAnalyzer {
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
                 <div style="width: 8px; height: 8px; border-radius: 50%; background: ${colors[curveName]};"></div>
-                <span style="font-weight: bold;">${curveName}: ${value}</span>
+                <span style="font-weight: bold;">${curveName}</span>
             </div>
             <div style="margin-top: 4px; font-size: 12px; color: #A0AEC0;">
                 ⭐ 能量最高点

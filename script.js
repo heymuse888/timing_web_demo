@@ -1,13 +1,13 @@
 // 调用后端API进行生日分析
-async function analyzeBirthdayAPI(birthday) {
+async function analyzeBirthdayAPI(userData) {
     try {
-        console.log('发送请求到后端:', birthday);
-        const response = await fetch('http://127.0.0.1:9999/analyze/birthday', {
+        console.log('发送请求到后端:', userData);
+        const response = await fetch('http://18.218.101.156:9999/analyze/birthday', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ birthday })
+            body: JSON.stringify(userData)
         });
 
         console.log('收到响应:', response.status, response.statusText);
@@ -242,7 +242,7 @@ class BirthdayAnalyzer {
             btn.className = 'zoom-btn';
             btn.style.cssText = `
                 padding: 8px 16px;
-                background: ${level.key === 'month' ? '#8B5CF6' : 'rgba(255,255,255,0.1)'};
+                background: ${level.key === 'month' ? '#2759ac' : 'rgba(255,255,255,0.1)'};
                 color: white;
                 border: none;
                 border-radius: 6px;
@@ -268,7 +268,7 @@ class BirthdayAnalyzer {
         
         buttons.forEach((btn, index) => {
             if (levels[index] === this.currentLevel) {
-                btn.style.background = '#8B5CF6';
+                btn.style.background = '#2759ac';
             } else {
                 btn.style.background = 'rgba(255,255,255,0.1)';
             }
@@ -278,6 +278,19 @@ class BirthdayAnalyzer {
     initializeChart() {
         const ctx = document.getElementById('energyChart').getContext('2d');
         
+        // 创建渐变色
+        const healthGradient = ctx.createLinearGradient(0, 0, 0, 400);
+        healthGradient.addColorStop(0, 'rgba(81, 22, 180, 0.3)');
+        healthGradient.addColorStop(1, 'rgba(81, 22, 180, 0.05)');
+        
+        const careerGradient = ctx.createLinearGradient(0, 0, 0, 400);
+        careerGradient.addColorStop(0, 'rgba(39, 89, 172, 0.3)');
+        careerGradient.addColorStop(1, 'rgba(39, 89, 172, 0.05)');
+        
+        const loveGradient = ctx.createLinearGradient(0, 0, 0, 400);
+        loveGradient.addColorStop(0, 'rgba(148, 68, 163, 0.3)');
+        loveGradient.addColorStop(1, 'rgba(148, 68, 163, 0.05)');
+        
         this.chart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -286,26 +299,29 @@ class BirthdayAnalyzer {
                     {
                         label: '健康',
                         data: [],
-                        borderColor: '#00A0E9',
-                        backgroundColor: 'rgba(0, 160, 233, 0.1)',
+                        borderColor: '#5116b4',
+                        backgroundColor: healthGradient,
                         tension: 0.8,
-                        fill: true
+                        fill: true,
+                        borderWidth: 5
                     },
                     {
                         label: '事业',
                         data: [],
-                        borderColor: '#8B5CF6',
-                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        borderColor: '#2759ac',
+                        backgroundColor: careerGradient,
                         tension: 0.8,
-                        fill: true
+                        fill: true,
+                        borderWidth: 5
                     },
                     {
                         label: '爱情',
                         data: [],
-                        borderColor: '#FF69B4',
-                        backgroundColor: 'rgba(255, 105, 180, 0.1)',
+                        borderColor: '#9444a3',
+                        backgroundColor: loveGradient,
                         tension: 0.8,
-                        fill: true
+                        fill: true,
+                        borderWidth: 5
                     }
                 ]
             },
@@ -327,7 +343,7 @@ class BirthdayAnalyzer {
                             maxRotation: 45,
                             minRotation: 45,
                             font: {
-                                size: 10
+                                size: 14
                             },
                             maxTicksLimit: 20
                         }
@@ -339,7 +355,10 @@ class BirthdayAnalyzer {
                             color: 'rgba(255, 255, 255, 0.1)'
                         },
                         ticks: {
-                            color: '#E2E8F0'
+                            color: '#E2E8F0',
+                            font: {
+                                size: 14
+                            }
                         }
                     }
                 }
@@ -348,16 +367,58 @@ class BirthdayAnalyzer {
     }
 
     async analyzeBirthday() {
+        const nameInput = document.getElementById('name');
+        const emailInput = document.getElementById('email');
+        const phoneInput = document.getElementById('phone');
         const birthdayInput = document.getElementById('birthday');
+        
+        const name = nameInput.value.trim();
+        const email = emailInput.value.trim();
+        const phone = phoneInput.value.trim();
         const birthday = birthdayInput.value;
 
+        // 验证必填字段
+        if (!name) {
+            alert('请输入姓名');
+            nameInput.focus();
+            return;
+        }
+        
+        if (!email) {
+            alert('请输入邮箱');
+            emailInput.focus();
+            return;
+        }
+        
+        if (!phone) {
+            alert('请输入电话');
+            phoneInput.focus();
+            return;
+        }
+        
         if (!birthday) {
             alert('请选择生日');
+            birthdayInput.focus();
+            return;
+        }
+
+        // 简单的邮箱格式验证
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            alert('请输入有效的邮箱地址');
+            emailInput.focus();
             return;
         }
 
         try {
-            this.rawData = await analyzeBirthdayAPI(birthday);
+            const userData = {
+                name: name,
+                email: email,
+                phone: phone,
+                birthday: birthday
+            };
+            
+            this.rawData = await analyzeBirthdayAPI(userData);
             this.updateChart();
         } catch (error) {
             console.error('分析失败:', error);

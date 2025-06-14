@@ -91,3 +91,13 @@ Api function
 1. 3 month can draw
 2. Color, zoom in zoom out, beauty, smooth etc
 3.  const response = await fetch('http://127.0.0.1:9999/analyze/birthday' put into the top 
+
+
+
+6/13/2025
+1. 响应式 -k
+2. 线的颜色和ui图相近 -k
+3. 姓名邮箱电话加入post -k
+4. 每个图都只显示12个点
+
+

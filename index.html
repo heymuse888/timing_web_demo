@@ -13,8 +13,11 @@
 <body>
     <nav class="top-nav">
         <div class="nav-content">
-            <div class="logo">SparkingTiming</div>
-            <a href="#" class="explore-more">探索更多</a>
+            <div class="logo">
+                <img src="assets/LOGO.png" alt="SparkingTiming Logo" class="logo-img">
+                <span class="logo-text">SparkingTiming</span>
+            </div>
+            <a href="https://sparkingtiming.com" class="explore-more" target="_blank" rel="noopener noreferrer">探索更多</a>
         </div>
     </nav>
 
@@ -23,21 +26,28 @@
         <section class="input-section">
             <div class="input-group">
                 <label>姓名</label>
-                <input type="text" placeholder="Please enter your name">
+                <input type="text" id="name" placeholder="Please enter your name">
             </div>
             <div class="input-group">
                 <label>邮箱</label>
-                <input type="text" placeholder="Please enter your email">
+                <input type="email" id="email" placeholder="Please enter your email">
             </div>
             <div class="input-group">
                 <label>电话</label>
-                <input type="text" placeholder="000-000-0000">
+                <input type="tel" id="phone" placeholder="000-000-0000">
             </div>
             <div class="input-group">
                 <label>生日</label>
                 <input type="date" id="birthday" placeholder="MM/DD/YYYY" class="date-input">
             </div>
-            <button class="submit-btn">推演</button>
+            <button class="submit-btn">
+                <span class="btn-text">推演</span>
+                <span class="btn-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M6 3L11 8L6 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+            </button>
         </section>
 
         <!-- Energy Curve Section -->
@@ -58,16 +68,12 @@
             </div>
             <canvas id="energyChart"></canvas>
         </section>
-
-
-        <!-- Floating Animation Section -->
-        <div class="floating-container">
-            <div class="floating-item">Energy</div>
-            <div class="floating-item">Flow</div>
-            <div class="floating-item">Power</div>
-            <div class="floating-item">Efficiency</div>
-        </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>所有解释权归sparkingtiming @sparkingtiming @2025</p>
+    </footer>
 
     <!-- Scripts -->
     <script src="api.js"></script>

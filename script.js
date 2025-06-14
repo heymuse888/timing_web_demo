@@ -435,8 +435,8 @@ class BirthdayAnalyzer {
                         }
                     },
                     y: {
-                        min: 0,
-                        max: 100,
+                        min: 50,
+                        max: 120,
                         grid: {
                             color: 'rgba(255, 255, 255, 0.1)'
                         },
@@ -512,6 +512,7 @@ class BirthdayAnalyzer {
             const userData = {
                 name: name,
                 email: email,
+                phone: "000-0000-0000", // 添加必需的phone字段
                 birthday: birthday,
                 birthtime: finalBirthtime,
                 birthplace: birthplace

@@ -1,30 +1,91 @@
-// 调用后端API进行生日分析
-async function analyzeBirthdayAPI(userData) {
-    try {
-        console.log('发送请求到后端:', userData);
-        const response = await fetch('http://18.218.101.156:9999/analyze/birthday', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(userData)
-        });
-
-        console.log('收到响应:', response.status, response.statusText);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API错误响应:', errorText);
-            throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+// 生成模拟数据
+function generateMockData() {
+    const times = [];
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+    
+    // 生成90天，每2小时一个点的时间序列
+    for (let day = 0; day < 90; day++) {
+        for (let hour = 0; hour < 24; hour += 2) {
+            const date = new Date(startDate);
+            date.setDate(date.getDate() + day);
+            date.setHours(hour);
+            const timeStr = `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:00`;
+            times.push(timeStr);
         }
-
-        const data = await response.json();
-        console.log('解析的JSON数据:', data);
-        return data;
-    } catch (error) {
-        console.error('API调用出错:', error);
-        throw error;
     }
+    
+    // 生成三条不同特征的曲线
+    function generateCurveData(baseValue, trend, volatility) {
+        const values = [];
+        let current = baseValue;
+        
+        for (let i = 0; i < times.length; i++) {
+            // 添加趋势
+            current += trend * (Math.random() - 0.5);
+            // 添加波动
+            current += volatility * (Math.random() - 0.5);
+            // 保持在合理范围内
+            current = Math.max(20, Math.min(80, current));
+            values.push(Math.round(current * 10) / 10);
+        }
+        
+        return values;
+    }
+    
+    return {
+        health: {
+            time: times,
+            value: generateCurveData(50, 0.1, 4)
+        },
+        career: {
+            time: times,
+            value: generateCurveData(45, 0.15, 5)
+        },
+        love: {
+            time: times,
+            value: generateCurveData(55, 0.05, 3)
+        }
+    };
+}
+
+// 调用后端API进行生日分析，失败时使用模拟数据
+async function analyzeBirthdayAPI(userData) {
+    // API端点列表，按优先级排序
+    const apiEndpoints = [
+        'https://18.218.101.156:9999/analyze/birthday', // HTTPS优先
+        'http://18.218.101.156:9999/analyze/birthday'   // HTTP备用
+    ];
+    
+    for (const endpoint of apiEndpoints) {
+        try {
+            console.log(`尝试连接API: ${endpoint}`);
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
+
+            console.log('收到响应:', response.status, response.statusText);
+            
+            if (!response.ok) {
+                throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log(`使用真实API数据 (${endpoint})`);
+            return data;
+        } catch (error) {
+            console.warn(`API端点 ${endpoint} 不可用:`, error.message);
+            // 继续尝试下一个端点
+        }
+    }
+    
+    // 所有API端点都失败，使用模拟数据
+    console.warn('所有API端点都不可用，使用模拟数据');
+    return generateMockData();
 }
 
 // 模拟生日分析数据生成

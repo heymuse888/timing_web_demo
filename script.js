@@ -53,8 +53,8 @@ function generateMockData() {
 async function analyzeBirthdayAPI(userData) {
     // API端点列表，按优先级排序
     const apiEndpoints = [
-        'https://18.218.101.156:9999/analyze/birthday', // HTTPS优先
-        'http://18.218.101.156:9999/analyze/birthday'   // HTTP备用
+        'https://3.143.23.68:9999/analyze/birthday', // HTTPS优先
+        'http://3.143.23.68:9999/analyze/birthday'   // HTTP备用
     ];
     
     for (const endpoint of apiEndpoints) {

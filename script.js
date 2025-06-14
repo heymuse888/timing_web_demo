@@ -53,8 +53,8 @@ function generateMockData() {
 async function analyzeBirthdayAPI(userData) {
     // API端点列表，按优先级排序
     const apiEndpoints = [
-        'https://3.143.23.68:9999/analyze/birthday', // HTTPS优先
-        'http://3.143.23.68:9999/analyze/birthday'   // HTTP备用
+//        'https://3.141.200.229:9999/analyze/birthday', // HTTPS优先
+        'http://3.141.200.229:9999/analyze/birthday'   // HTTP备用
     ];
     
     // 设置较短的超时时间，避免用户等待太久
@@ -170,44 +170,72 @@ function aggregateDataByLevel(rawData, level) {
     }
 }
 
+// function aggregateByMonth(health, career, love) {
+//     const monthlyData = {};
+    
+//     health.time.forEach((time, index) => {
+//         const month = time.slice(0, 2);
+//         if (!monthlyData[month]) {
+//             monthlyData[month] = {
+//                 health: [],
+//                 career: [],
+//                 love: []
+//             };
+//         }
+//         monthlyData[month].health.push(health.value[index]);
+//         monthlyData[month].career.push(career.value[index]);
+//         monthlyData[month].love.push(love.value[index]);
+//     });
+    
+//     const result = {
+//         health: { time: [], value: [] },
+//         career: { time: [], value: [] },
+//         love: { time: [], value: [] }
+//     };
+    
+//     Object.keys(monthlyData).forEach(month => {
+//         const monthNum = month.replace(/^0/, '');
+//         result.health.time.push(monthNum + '月');
+//         result.career.time.push(monthNum + '月');
+//         result.love.time.push(monthNum + '月');
+        
+//         // 计算每月平均值
+//         result.health.value.push(Math.round(monthlyData[month].health.reduce((a, b) => a + b) / monthlyData[month].health.length * 10) / 10);
+//         result.career.value.push(Math.round(monthlyData[month].career.reduce((a, b) => a + b) / monthlyData[month].career.length * 10) / 10);
+//         result.love.value.push(Math.round(monthlyData[month].love.reduce((a, b) => a + b) / monthlyData[month].love.length * 10) / 10);
+//     });
+    
+//     return result;
+// }
+
 function aggregateByMonth(health, career, love) {
-    const monthlyData = {};
-    
-    health.time.forEach((time, index) => {
-        const month = time.slice(0, 2);
-        if (!monthlyData[month]) {
-            monthlyData[month] = {
-                health: [],
-                career: [],
-                love: []
-            };
-        }
-        monthlyData[month].health.push(health.value[index]);
-        monthlyData[month].career.push(career.value[index]);
-        monthlyData[month].love.push(love.value[index]);
-    });
-    
+    // 按天聚合，每12个时间点为一组
     const result = {
         health: { time: [], value: [] },
         career: { time: [], value: [] },
         love: { time: [], value: [] }
     };
     
-    Object.keys(monthlyData).forEach(month => {
-        const monthNum = month.replace(/^0/, '');
-        result.health.time.push(monthNum + '月');
-        result.career.time.push(monthNum + '月');
-        result.love.time.push(monthNum + '月');
+    for (let i = 0; i < Math.round(health.time.length); i += 120) {
+        const dayData = {
+            health: health.value.slice(i, i + 120),
+            career: career.value.slice(i, i + 120),
+            love: love.value.slice(i, i + 120)
+        };
         
-        // 计算每月平均值
-        result.health.value.push(Math.round(monthlyData[month].health.reduce((a, b) => a + b) / monthlyData[month].health.length * 10) / 10);
-        result.career.value.push(Math.round(monthlyData[month].career.reduce((a, b) => a + b) / monthlyData[month].career.length * 10) / 10);
-        result.love.value.push(Math.round(monthlyData[month].love.reduce((a, b) => a + b) / monthlyData[month].love.length * 10) / 10);
-    });
+        const dayLabel = health.time[i].slice(0, 5); // "MM-DD"
+        
+        result.health.time.push(dayLabel);
+        result.career.time.push(dayLabel);
+        result.love.time.push(dayLabel);
+        
+        result.health.value.push(Math.round(dayData.health.reduce((a, b) => a + b) / dayData.health.length * 120) / 120);
+        result.career.value.push(Math.round(dayData.career.reduce((a, b) => a + b) / dayData.career.length * 120) / 120);
+        result.love.value.push(Math.round(dayData.love.reduce((a, b) => a + b) / dayData.love.length * 120) / 120);
+    }
     
     return result;
 }
-
 
 
 function aggregateByDay(health, career, love) {
@@ -218,7 +246,7 @@ function aggregateByDay(health, career, love) {
         love: { time: [], value: [] }
     };
     
-    for (let i = 0; i < health.time.length; i += 12) {
+    for (let i = 0; i < Math.round(health.time.length/3); i += 12) {
         const dayData = {
             health: health.value.slice(i, i + 12),
             career: career.value.slice(i, i + 12),
@@ -435,8 +463,8 @@ class BirthdayAnalyzer {
                         }
                     },
                     y: {
-                        min: 50,
-                        max: 120,
+                        min: 55,
+                        max: 105,
                         grid: {
                             color: 'rgba(255, 255, 255, 0.1)'
                         },
@@ -445,7 +473,8 @@ class BirthdayAnalyzer {
                             font: {
                                 size: 14
                             }
-                        }
+                        },
+                        display: false
                     }
                 }
             }

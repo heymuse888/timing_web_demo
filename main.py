@@ -1,11 +1,13 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Dict
 import uvicorn
 import random
-import json
-import os
+
+from enum import IntEnum
+from typing import List, Optional, Dict
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
 
 app = FastAPI()
@@ -19,54 +21,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 数据存储文件路径
-DATA_FILE = "user_data.json"
-
-def save_user_data(user_data: dict):
-    """保存用户数据到JSON文件"""
-    try:
-        # 添加时间戳
-        user_data["timestamp"] = datetime.now().isoformat()
-        user_data["id"] = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        
-        # 读取现有数据
-        if os.path.exists(DATA_FILE):
-            with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                existing_data = json.load(f)
-        else:
-            existing_data = []
-        
-        # 添加新数据
-        existing_data.append(user_data)
-        
-        # 保存到文件
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
-            json.dump(existing_data, f, ensure_ascii=False, indent=2)
-        
-        print(f"✅ 用户数据已保存: {user_data['name']} ({user_data['id']})")
-        return True
-    except Exception as e:
-        print(f"❌ 保存用户数据失败: {e}")
-        return False
-
-def get_user_count():
-    """获取用户总数"""
-    try:
-        if os.path.exists(DATA_FILE):
-            with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                return len(data)
-        return 0
-    except:
-        return 0
-
 # 定义请求数据结构
 class BirthdayData(BaseModel):
+    birthday: str = Field(..., description="Day of birth of the user")
     name: str
     email: str
-    birthday: str
-    birthtime: str
-    birthplace: str
+    phone: str
 
 # 定义时间值对的数据结构
 class TimeValuePair(BaseModel):
@@ -79,9 +39,53 @@ class AnalysisResponse(BaseModel):
     career: TimeValuePair
     love: TimeValuePair
 
+
+def generate_values():
+    values = []
+    value = 80
+    for i in range(36500):
+        values.append(value)
+        random_number = random.randint(-5, 5)
+        value += random_number
+        value = max(60, min(value, 100))
+    
+    return values
+
+health_value = generate_values()
+career_value = generate_values()
+love_value = generate_values()
+
+
+def generate_smooth_luck_values(days=90, interval_hours=2):
+    start_time = datetime.datetime.now()
+    end_time = start_time + datetime.timedelta(days=days)
+    
+    current_time = start_time
+    luck_value = 80  # 初始运势值（范围1-100）
+    luck_data = []
+    
+    while current_time <= end_time:
+        # 记录当前时间点的运势值
+        luck_data.append({
+            "timestamp": current_time.strftime("%m-%d %H:%M"),
+            "luck_value": luck_value
+        })
+        
+        # 生成小幅随机变化（-3到+3之间，避免突变）
+        change = random.randint(-5, 5)
+        luck_value += change
+        
+        # 确保运势值在1~100之间
+        luck_value = max(60, min(luck_value, 100))
+        
+        # 进入下一个时间点
+        current_time += datetime.timedelta(hours=interval_hours)
+    
+    return luck_data
+
 def generate_time_series():
     """生成从今天起未来3个月（90天），每天每2小时一个时间点的时间序列"""
-    start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    start_date = datetime.now().replace(hour=1, minute=0, second=0, microsecond=0)
     days = 90
     times = []
     for day in range(days):
@@ -91,15 +95,25 @@ def generate_time_series():
             times.append(time_point.strftime("%m-%d %H:%M"))
     return times
 
-def generate_mock_data() -> AnalysisResponse:
+def generate_mock_data(data) -> AnalysisResponse:
     # 生成时间序列
     times = generate_time_series()
+    
+    date_string = data
+    date_format = "%Y-%m-%d"
+    date_object = datetime.strptime(date_string, date_format)
+    # now_date_object = datetime.now()
+    # dif = now_date_object - date_object
+
+    start_idx = 10*date_object.year + 100*date_object.month + 10000*date_object.day
+    start_idx = start_idx %  34000
+    
     
     # 为每种类型创建时间和数值的映射
     def create_time_value_dict():
         values = []
         base = random.uniform(40, 60)  # 起始值
-        for _ in range(len(times)):
+        for idx in range(len(times)):
             # 在前一个值基础上微调，波动范围小
             delta = random.uniform(-2, 2)
             base = min(80, max(20, base + delta))  # 保证在20~80之间
@@ -110,87 +124,17 @@ def generate_mock_data() -> AnalysisResponse:
         }
 
     return {
-        "health": create_time_value_dict(),
-        "career": create_time_value_dict(),
-        "love": create_time_value_dict()
+        "health": {"time":times , "value": health_value[start_idx: start_idx+len(times)]},
+        "career": {"time":times , "value": career_value[start_idx: start_idx+len(times)]},
+        "love": {"time":times , "value": love_value[start_idx: start_idx+len(times)]}
     }
 
 @app.post("/analyze/birthday", response_model=AnalysisResponse)
-async def analyze_birthday(data: BirthdayData):
-    print(f"📝 收到用户数据 - 姓名: {data.name}, 邮箱: {data.email}, 生日: {data.birthday}, 时间: {data.birthtime}, 出生地: {data.birthplace}")
-    
-    # 保存用户数据到后台
-    user_data = {
-        "name": data.name,
-        "email": data.email,
-        "birthday": data.birthday,
-        "birthtime": data.birthtime,
-        "birthplace": data.birthplace
-    }
-    
-    save_success = save_user_data(user_data)
-    if save_success:
-        user_count = get_user_count()
-        print(f"📊 当前用户总数: {user_count}")
+def analyze_birthday(data: BirthdayData):
+    print(f"Received birthday: {data.birthday}")
     
     # 生成模拟数据
-    analysis_data = generate_mock_data()
+    analysis_data = generate_mock_data(data.birthday)
     
     return analysis_data
 
-@app.get("/admin/users")
-async def get_all_users():
-    """管理接口：获取所有用户数据"""
-    try:
-        if os.path.exists(DATA_FILE):
-            with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                return {
-                    "total_users": len(data),
-                    "users": data
-                }
-        return {"total_users": 0, "users": []}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.get("/admin/stats")
-async def get_user_stats():
-    """管理接口：获取用户统计信息"""
-    try:
-        if os.path.exists(DATA_FILE):
-            with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                
-                # 统计信息
-                total_users = len(data)
-                cities = {}
-                recent_users = []
-                
-                for user in data:
-                    # 统计城市分布
-                    city = user.get('birthplace', '未知')
-                    cities[city] = cities.get(city, 0) + 1
-                    
-                    # 最近用户（最近10个）
-                    if len(recent_users) < 10:
-                        recent_users.append({
-                            "name": user.get('name', ''),
-                            "timestamp": user.get('timestamp', ''),
-                            "birthplace": user.get('birthplace', '')
-                        })
-                
-                return {
-                    "total_users": total_users,
-                    "city_distribution": cities,
-                    "recent_users": recent_users[-10:]  # 最近10个用户
-                }
-        return {"total_users": 0, "city_distribution": {}, "recent_users": []}
-    except Exception as e:
-        return {"error": str(e)}
-
-if __name__ == "__main__":
-    print("🚀 启动SparkingTiming后端服务...")
-    print("📊 管理接口:")
-    print("   - 用户数据: http://localhost:9999/admin/users")
-    print("   - 统计信息: http://localhost:9999/admin/stats")
-    uvicorn.run("main:app", host="0.0.0.0", port=9999, reload=True) 

@@ -111,7 +111,8 @@ body {
 input[type="text"],
 input[type="email"],
 input[type="tel"],
-input[type="date"] {
+input[type="date"],
+input[type="time"] {
     width: 100%;
     padding: 0.75rem;
     background-color: var(--input-background);
@@ -125,14 +126,16 @@ input[type="date"] {
 input[type="text"]:focus,
 input[type="email"]:focus,
 input[type="tel"]:focus,
-input[type="date"]:focus {
+input[type="date"]:focus,
+input[type="time"]:focus {
     outline: none;
     border-color: var(--primary-color);
 }
 
 input[type="text"]::placeholder,
 input[type="email"]::placeholder,
-input[type="tel"]::placeholder {
+input[type="tel"]::placeholder,
+input[type="time"]::placeholder {
     color: rgba(255, 255, 255, 0.5);
 }
 
@@ -241,6 +244,50 @@ input[type="date"]::-webkit-clear-button {
 /* 为空时的占位符颜色 */
 input[type="date"]:invalid {
     color: rgba(255, 255, 255, 0.5);
+}
+
+/* Time input specific styles */
+input[type="time"] {
+    color-scheme: dark;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12,6 12,12 16,14"></polyline></svg>');
+    background-size: 16px 16px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+input[type="time"]::-webkit-datetime-edit {
+    color: white;
+}
+
+input[type="time"]::-webkit-datetime-edit-fields-wrapper {
+    background: transparent;
+}
+
+input[type="time"]::-webkit-datetime-edit-text {
+    color: rgba(255, 255, 255, 0.7);
+    padding: 0 0.2em;
+}
+
+input[type="time"]::-webkit-datetime-edit-hour-field,
+input[type="time"]::-webkit-datetime-edit-minute-field {
+    background: transparent;
+    color: white;
+}
+
+input[type="time"]::-webkit-inner-spin-button {
+    display: none;
+}
+
+input[type="time"]::-webkit-clear-button {
+    display: none;
 }
 
 /* Energy Chart Section */
@@ -355,7 +402,8 @@ canvas {
     input[type="text"],
     input[type="email"],
     input[type="tel"],
-    input[type="date"] {
+    input[type="date"],
+    input[type="time"] {
         padding: 0.8rem;
         font-size: 16px; /* 防止 iOS 缩放 */
     }
@@ -436,7 +484,8 @@ canvas {
     input[type="text"],
     input[type="email"],
     input[type="tel"],
-    input[type="date"] {
+    input[type="date"],
+    input[type="time"] {
         padding: 0.7rem;
         font-size: 16px;
     }
@@ -508,7 +557,8 @@ canvas {
     input[type="text"],
     input[type="email"],
     input[type="tel"],
-    input[type="date"] {
+    input[type="date"],
+    input[type="time"] {
         min-height: 44px;
     }
 }

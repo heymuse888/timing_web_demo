@@ -32,13 +32,18 @@
                 <label>邮箱</label>
                 <input type="email" id="email" placeholder="Please enter your email">
             </div>
-            <div class="input-group">
-                <label>电话</label>
-                <input type="tel" id="phone" placeholder="000-000-0000">
-            </div>
+
             <div class="input-group">
                 <label>生日</label>
                 <input type="date" id="birthday" placeholder="MM/DD/YYYY" class="date-input">
+            </div>
+            <div class="input-group">
+                <label>出生时间</label>
+                <input type="time" id="birthtime" placeholder="HH:MM" class="time-input">
+            </div>
+            <div class="input-group">
+                <label>出生地</label>
+                <input type="text" id="birthplace" placeholder="请输入出生城市 请关注正式版发布">
             </div>
             <button class="submit-btn">
                 <span class="btn-text">推演</span>
@@ -76,8 +81,6 @@
     </footer>
 
     <!-- Scripts -->
-    <script src="api.js"></script>
-    <script src="chart.js"></script>
     <script src="script.js"></script>
 </body>
 </html> 

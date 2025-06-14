@@ -57,34 +57,43 @@ async function analyzeBirthdayAPI(userData) {
         'http://3.143.23.68:9999/analyze/birthday'   // HTTP备用
     ];
     
+    // 设置较短的超时时间，避免用户等待太久
+    const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('请求超时')), 3000); // 3秒超时
+    });
+    
     for (const endpoint of apiEndpoints) {
         try {
-            console.log(`尝试连接API: ${endpoint}`);
-            const response = await fetch(endpoint, {
+            console.log(`🔄 尝试连接API: ${endpoint}`);
+            
+            const fetchPromise = fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(userData)
             });
-
-            console.log('收到响应:', response.status, response.statusText);
+            
+            // 使用Promise.race来实现超时控制
+            const response = await Promise.race([fetchPromise, timeoutPromise]);
+            
+            console.log('✅ 收到响应:', response.status, response.statusText);
             
             if (!response.ok) {
                 throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
             }
 
             const data = await response.json();
-            console.log(`使用真实API数据 (${endpoint})`);
+            console.log(`🎯 使用真实API数据 (${endpoint})`);
             return data;
         } catch (error) {
-            console.warn(`API端点 ${endpoint} 不可用:`, error.message);
+            console.warn(`❌ API端点 ${endpoint} 不可用:`, error.message);
             // 继续尝试下一个端点
         }
     }
     
     // 所有API端点都失败，使用模拟数据
-    console.warn('所有API端点都不可用，使用模拟数据');
+    console.log('🎲 所有API端点都不可用，使用模拟数据');
     return generateMockData();
 }
 
@@ -155,13 +164,9 @@ function aggregateDataByLevel(rawData, level) {
     switch (level) {
         case 'month':
             return aggregateByMonth(health, career, love);
-        case 'week':
-            return aggregateByWeek(health, career, love);
         case 'day':
-            return aggregateByDay(health, career, love);
-        case 'hour':
         default:
-            return { health, career, love };
+            return aggregateByDay(health, career, love);
     }
 }
 
@@ -203,38 +208,7 @@ function aggregateByMonth(health, career, love) {
     return result;
 }
 
-function aggregateByWeek(health, career, love) {
-    // 按周聚合，每7天为一组
-    const result = {
-        health: { time: [], value: [] },
-        career: { time: [], value: [] },
-        love: { time: [], value: [] }
-    };
-    
-    for (let i = 0; i < health.time.length; i += 84) { // 7天 * 12个时间点
-        const weekData = {
-            health: health.value.slice(i, i + 84),
-            career: career.value.slice(i, i + 84),
-            love: love.value.slice(i, i + 84)
-        };
-        
-        // 获取这一周的开始和结束日期
-        const weekStart = health.time[i].slice(0, 5); // "MM-DD"
-        const weekEndIndex = Math.min(i + 83, health.time.length - 1);
-        const weekEnd = health.time[weekEndIndex].slice(0, 5); // "MM-DD"
-        const weekLabel = `${weekStart}~${weekEnd}`;
-        
-        result.health.time.push(weekLabel);
-        result.career.time.push(weekLabel);
-        result.love.time.push(weekLabel);
-        
-        result.health.value.push(Math.round(weekData.health.reduce((a, b) => a + b) / weekData.health.length * 10) / 10);
-        result.career.value.push(Math.round(weekData.career.reduce((a, b) => a + b) / weekData.career.length * 10) / 10);
-        result.love.value.push(Math.round(weekData.love.reduce((a, b) => a + b) / weekData.love.length * 10) / 10);
-    }
-    
-    return result;
-}
+
 
 function aggregateByDay(health, career, love) {
     // 按天聚合，每12个时间点为一组
@@ -270,7 +244,11 @@ class BirthdayAnalyzer {
     constructor() {
         this.chart = null;
         this.rawData = null;
-        this.currentLevel = 'month'; // 'month', 'week', 'day', 'hour'
+        this.currentLevel = 'day'; // 默认显示日视图
+        
+        // 设置全局变量以便onClick事件访问
+        window.birthdayAnalyzer = this;
+        
         this.initializeEventListeners();
         this.initializeChart();
     }
@@ -281,6 +259,21 @@ class BirthdayAnalyzer {
         
         // 添加缩放控制按钮事件
         this.addZoomControls();
+        
+        // 开发测试：双击按钮直接使用模拟数据
+        submitBtn.addEventListener('dblclick', () => this.testMockData());
+    }
+    
+    // 测试模拟数据功能
+    async testMockData() {
+        console.log('🧪 测试模拟数据功能...');
+        try {
+            this.rawData = generateMockData();
+            this.updateChart();
+            console.log('✅ 模拟数据测试成功');
+        } catch (error) {
+            console.error('❌ 模拟数据测试失败:', error);
+        }
     }
     
     addZoomControls() {
@@ -292,9 +285,7 @@ class BirthdayAnalyzer {
         
         const levels = [
             { key: 'month', label: '月视图' },
-            { key: 'week', label: '周视图' },
-            { key: 'day', label: '日视图' },
-            { key: 'hour', label: '小时视图' }
+            { key: 'day', label: '日视图' }
         ];
         
         levels.forEach(level => {
@@ -303,7 +294,7 @@ class BirthdayAnalyzer {
             btn.className = 'zoom-btn';
             btn.style.cssText = `
                 padding: 8px 16px;
-                background: ${level.key === 'month' ? '#2759ac' : 'rgba(255,255,255,0.1)'};
+                background: ${level.key === 'day' ? '#2759ac' : 'rgba(255,255,255,0.1)'};
                 color: white;
                 border: none;
                 border-radius: 6px;
@@ -325,7 +316,7 @@ class BirthdayAnalyzer {
     
     updateZoomButtons() {
         const buttons = document.querySelectorAll('.zoom-btn');
-        const levels = ['month', 'week', 'day', 'hour'];
+        const levels = ['month', 'day'];
         
         buttons.forEach((btn, index) => {
             if (levels[index] === this.currentLevel) {
@@ -389,9 +380,43 @@ class BirthdayAnalyzer {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'nearest',
+                    axis: 'xy'
+                },
+                onHover: (event, elements) => {
+                    // 移除之前的tooltip
+                    const existingTooltip = document.getElementById('custom-tooltip');
+                    if (existingTooltip) {
+                        existingTooltip.remove();
+                    }
+                    
+                    if (elements.length > 0) {
+                        const element = elements[0];
+                        const datasetIndex = element.datasetIndex;
+                        const dataIndex = element.index;
+                        
+                        // 检查悬停的是否是白色圆点（最高点）
+                        const dataset = window.birthdayAnalyzer.chart.data.datasets[datasetIndex];
+                        const pointRadius = dataset.pointRadius;
+                        const isMaxPoint = Array.isArray(pointRadius) ? pointRadius[dataIndex] > 0 : pointRadius > 0;
+                        
+                        if (isMaxPoint) {
+                            window.birthdayAnalyzer.showTooltipAtPoint(event, datasetIndex, dataIndex);
+                        }
+                    }
+                },
                 plugins: {
                     legend: {
                         display: false
+                    },
+                    tooltip: {
+                        enabled: false,  // 禁用默认的悬停tooltip
+                        external: function(context) {
+                            // 自定义tooltip显示逻辑
+                            return;
+                        }
                     }
                 },
                 scales: {
@@ -430,13 +455,17 @@ class BirthdayAnalyzer {
     async analyzeBirthday() {
         const nameInput = document.getElementById('name');
         const emailInput = document.getElementById('email');
-        const phoneInput = document.getElementById('phone');
         const birthdayInput = document.getElementById('birthday');
+        const birthtimeInput = document.getElementById('birthtime');
+        const birthplaceInput = document.getElementById('birthplace');
+        const submitBtn = document.querySelector('.submit-btn');
+        const btnText = submitBtn.querySelector('.btn-text');
         
         const name = nameInput.value.trim();
         const email = emailInput.value.trim();
-        const phone = phoneInput.value.trim();
         const birthday = birthdayInput.value;
+        const birthtime = birthtimeInput.value;
+        const birthplace = birthplaceInput.value.trim();
 
         // 验证必填字段
         if (!name) {
@@ -451,15 +480,18 @@ class BirthdayAnalyzer {
             return;
         }
         
-        if (!phone) {
-            alert('请输入电话');
-            phoneInput.focus();
-            return;
-        }
-        
         if (!birthday) {
             alert('请选择生日');
             birthdayInput.focus();
+            return;
+        }
+        
+        // 出生时间为可选字段，如果未填写则使用默认值
+        const finalBirthtime = birthtime || '12:00';
+        
+        if (!birthplace) {
+            alert('请输入出生地');
+            birthplaceInput.focus();
             return;
         }
 
@@ -472,18 +504,30 @@ class BirthdayAnalyzer {
         }
 
         try {
+            // 显示加载状态
+            submitBtn.disabled = true;
+            btnText.textContent = '推演中...';
+            console.log('🚀 开始分析生日数据...');
+            
             const userData = {
                 name: name,
                 email: email,
-                phone: phone,
-                birthday: birthday
+                birthday: birthday,
+                birthtime: finalBirthtime,
+                birthplace: birthplace
             };
             
             this.rawData = await analyzeBirthdayAPI(userData);
             this.updateChart();
+            
+            console.log('✅ 分析完成，图表已更新');
         } catch (error) {
-            console.error('分析失败:', error);
+            console.error('❌ 分析失败:', error);
             alert('分析失败，请稍后重试');
+        } finally {
+            // 恢复按钮状态
+            submitBtn.disabled = false;
+            btnText.textContent = '推演';
         }
     }
     
@@ -505,51 +549,187 @@ class BirthdayAnalyzer {
     }
     
     setHighlightPoints(data) {
-        if (this.currentLevel === 'month') {
-            // 月视图：高亮最高和最低点
-            const healthExtrema = findMonthlyExtrema(data.health.time, data.health.value);
-            
-            function makePointRadius(length, maxima, minima) {
-                const arr = new Array(length).fill(0);
-                maxima.forEach(i => arr[i] = 8);
-                minima.forEach(i => arr[i] = 8);
-                return arr;
-            }
-            
-            this.chart.data.datasets[0].pointRadius = makePointRadius(data.health.value.length, healthExtrema.maxima, healthExtrema.minima);
-            this.chart.data.datasets[1].pointRadius = makePointRadius(data.career.value.length, healthExtrema.maxima, healthExtrema.minima);
-            this.chart.data.datasets[2].pointRadius = makePointRadius(data.love.value.length, healthExtrema.maxima, healthExtrema.minima);
-            
-            this.chart.data.datasets[0].pointBackgroundColor = makePointRadius(data.health.value.length, healthExtrema.maxima, healthExtrema.minima).map(r => r > 0 ? '#FFFFFF' : 'rgba(0,0,0,0)');
-            this.chart.data.datasets[1].pointBackgroundColor = makePointRadius(data.career.value.length, healthExtrema.maxima, healthExtrema.minima).map(r => r > 0 ? '#FFFFFF' : 'rgba(0,0,0,0)');
-            this.chart.data.datasets[2].pointBackgroundColor = makePointRadius(data.love.value.length, healthExtrema.maxima, healthExtrema.minima).map(r => r > 0 ? '#FFFFFF' : 'rgba(0,0,0,0)');
-        } else if (this.currentLevel === 'hour' || this.currentLevel === 'day') {
-            // 小时视图和日视图：不显示任何点，只显示干净曲线
-            const length = data.health.value.length;
-            const pointRadius = new Array(length).fill(0);
-            const pointColor = new Array(length).fill('rgba(0,0,0,0)');
-            
-            this.chart.data.datasets[0].pointRadius = pointRadius;
-            this.chart.data.datasets[1].pointRadius = pointRadius;
-            this.chart.data.datasets[2].pointRadius = pointRadius;
-            
-            this.chart.data.datasets[0].pointBackgroundColor = pointColor;
-            this.chart.data.datasets[1].pointBackgroundColor = pointColor;
-            this.chart.data.datasets[2].pointBackgroundColor = pointColor;
-        } else {
-            // 周视图：显示所有点
-            const length = data.health.value.length;
-            const pointRadius = new Array(length).fill(4);
-            const pointColor = new Array(length).fill('#FFFFFF');
-            
-            this.chart.data.datasets[0].pointRadius = pointRadius;
-            this.chart.data.datasets[1].pointRadius = pointRadius;
-            this.chart.data.datasets[2].pointRadius = pointRadius;
-            
-            this.chart.data.datasets[0].pointBackgroundColor = pointColor;
-            this.chart.data.datasets[1].pointBackgroundColor = pointColor;
-            this.chart.data.datasets[2].pointBackgroundColor = pointColor;
+        // 找出每条曲线的最高点
+        function findMaximumPoints(values) {
+            const maxValue = Math.max(...values);
+            const maxIndices = [];
+            values.forEach((value, index) => {
+                if (value === maxValue) {
+                    maxIndices.push(index);
+                }
+            });
+            return maxIndices;
         }
+        
+        // 为每条曲线找出最高点
+        const healthMaxima = findMaximumPoints(data.health.value);
+        const careerMaxima = findMaximumPoints(data.career.value);
+        const loveMaxima = findMaximumPoints(data.love.value);
+        
+        // 创建点半径数组，只在最高点显示白色圆点
+        function makePointRadius(length, maxima) {
+            const arr = new Array(length).fill(0);
+            maxima.forEach(i => arr[i] = 8);
+            return arr;
+        }
+        
+        // 创建点颜色数组，最高点为白色，其他透明
+        function makePointColor(length, maxima) {
+            const arr = new Array(length).fill('rgba(0,0,0,0)');
+            maxima.forEach(i => arr[i] = '#FFFFFF');
+            return arr;
+        }
+        
+        // 创建点击检测半径数组，让白色圆点更容易被检测到
+        function makePointHitRadius(length, maxima) {
+            const arr = new Array(length).fill(1);
+            maxima.forEach(i => arr[i] = 15); // 增大检测半径
+            return arr;
+        }
+        
+        if (this.currentLevel === 'month') {
+            // 月视图：显示能量最高点的白色圆点
+            this.chart.data.datasets[0].pointRadius = makePointRadius(data.health.value.length, healthMaxima);
+            this.chart.data.datasets[1].pointRadius = makePointRadius(data.career.value.length, careerMaxima);
+            this.chart.data.datasets[2].pointRadius = makePointRadius(data.love.value.length, loveMaxima);
+            
+            this.chart.data.datasets[0].pointBackgroundColor = makePointColor(data.health.value.length, healthMaxima);
+            this.chart.data.datasets[1].pointBackgroundColor = makePointColor(data.career.value.length, careerMaxima);
+            this.chart.data.datasets[2].pointBackgroundColor = makePointColor(data.love.value.length, loveMaxima);
+            
+            // 设置点的边框颜色，使白色圆点更明显
+            this.chart.data.datasets[0].pointBorderColor = makePointColor(data.health.value.length, healthMaxima).map(c => c === '#FFFFFF' ? '#5116b4' : 'rgba(0,0,0,0)');
+            this.chart.data.datasets[1].pointBorderColor = makePointColor(data.career.value.length, careerMaxima).map(c => c === '#FFFFFF' ? '#2759ac' : 'rgba(0,0,0,0)');
+            this.chart.data.datasets[2].pointBorderColor = makePointColor(data.love.value.length, loveMaxima).map(c => c === '#FFFFFF' ? '#9444a3' : 'rgba(0,0,0,0)');
+            
+            // 设置点的边框宽度
+            this.chart.data.datasets[0].pointBorderWidth = makePointRadius(data.health.value.length, healthMaxima).map(r => r > 0 ? 2 : 0);
+            this.chart.data.datasets[1].pointBorderWidth = makePointRadius(data.career.value.length, careerMaxima).map(r => r > 0 ? 2 : 0);
+            this.chart.data.datasets[2].pointBorderWidth = makePointRadius(data.love.value.length, loveMaxima).map(r => r > 0 ? 2 : 0);
+            
+            // 设置点击检测半径，让白色圆点更容易被检测到
+            this.chart.data.datasets[0].pointHitRadius = makePointHitRadius(data.health.value.length, healthMaxima);
+            this.chart.data.datasets[1].pointHitRadius = makePointHitRadius(data.career.value.length, careerMaxima);
+            this.chart.data.datasets[2].pointHitRadius = makePointHitRadius(data.love.value.length, loveMaxima);
+        } else if (this.currentLevel === 'day') {
+            // 日视图：也显示能量最高点的白色圆点
+            this.chart.data.datasets[0].pointRadius = makePointRadius(data.health.value.length, healthMaxima);
+            this.chart.data.datasets[1].pointRadius = makePointRadius(data.career.value.length, careerMaxima);
+            this.chart.data.datasets[2].pointRadius = makePointRadius(data.love.value.length, loveMaxima);
+            
+            this.chart.data.datasets[0].pointBackgroundColor = makePointColor(data.health.value.length, healthMaxima);
+            this.chart.data.datasets[1].pointBackgroundColor = makePointColor(data.career.value.length, careerMaxima);
+            this.chart.data.datasets[2].pointBackgroundColor = makePointColor(data.love.value.length, loveMaxima);
+            
+            // 设置点的边框颜色，使白色圆点更明显
+            this.chart.data.datasets[0].pointBorderColor = makePointColor(data.health.value.length, healthMaxima).map(c => c === '#FFFFFF' ? '#5116b4' : 'rgba(0,0,0,0)');
+            this.chart.data.datasets[1].pointBorderColor = makePointColor(data.career.value.length, careerMaxima).map(c => c === '#FFFFFF' ? '#2759ac' : 'rgba(0,0,0,0)');
+            this.chart.data.datasets[2].pointBorderColor = makePointColor(data.love.value.length, loveMaxima).map(c => c === '#FFFFFF' ? '#9444a3' : 'rgba(0,0,0,0)');
+            
+            // 设置点的边框宽度
+            this.chart.data.datasets[0].pointBorderWidth = makePointRadius(data.health.value.length, healthMaxima).map(r => r > 0 ? 2 : 0);
+            this.chart.data.datasets[1].pointBorderWidth = makePointRadius(data.career.value.length, careerMaxima).map(r => r > 0 ? 2 : 0);
+            this.chart.data.datasets[2].pointBorderWidth = makePointRadius(data.love.value.length, loveMaxima).map(r => r > 0 ? 2 : 0);
+            
+            // 设置点击检测半径，让白色圆点更容易被检测到
+            this.chart.data.datasets[0].pointHitRadius = makePointHitRadius(data.health.value.length, healthMaxima);
+            this.chart.data.datasets[1].pointHitRadius = makePointHitRadius(data.career.value.length, careerMaxima);
+            this.chart.data.datasets[2].pointHitRadius = makePointHitRadius(data.love.value.length, loveMaxima);
+        }
+    }
+    
+    showTooltipAtPoint(event, datasetIndex, dataIndex) {
+        const dataset = this.chart.data.datasets[datasetIndex];
+        const label = this.chart.data.labels[dataIndex];
+        const value = dataset.data[dataIndex];
+        const curveName = dataset.label;
+        
+        // 移除之前的tooltip
+        const existingTooltip = document.getElementById('custom-tooltip');
+        if (existingTooltip) {
+            existingTooltip.remove();
+        }
+        
+        // 获取图表容器的位置
+        const chartContainer = this.chart.canvas.getBoundingClientRect();
+        const canvasPosition = Chart.helpers.getRelativePosition(event, this.chart);
+        const datasetMeta = this.chart.getDatasetMeta(datasetIndex);
+        const pointElement = datasetMeta.data[dataIndex];
+        
+        // 创建自定义tooltip
+        const tooltip = document.createElement('div');
+        tooltip.id = 'custom-tooltip';
+        tooltip.style.cssText = `
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #FFFFFF;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            z-index: 1000;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+        `;
+        
+        // 设置曲线颜色
+        const colors = {
+            '健康': '#5116b4',
+            '事业': '#2759ac', 
+            '爱情': '#9444a3'
+        };
+        
+        tooltip.innerHTML = `
+            <div style="margin-bottom: 6px; font-weight: bold; color: #E2E8F0;">
+                时间: ${label}
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: ${colors[curveName]};"></div>
+                <span style="font-weight: bold;">${curveName}: ${value}</span>
+            </div>
+            <div style="margin-top: 4px; font-size: 12px; color: #A0AEC0;">
+                ⭐ 能量最高点
+            </div>
+        `;
+        
+        // 将tooltip添加到图表容器
+        const chartWrapper = this.chart.canvas.parentElement;
+        chartWrapper.style.position = 'relative';
+        chartWrapper.appendChild(tooltip);
+        
+        // 计算tooltip位置
+        const tooltipRect = tooltip.getBoundingClientRect();
+        const pointX = pointElement.x;
+        const pointY = pointElement.y;
+        
+        // 调整位置，确保tooltip不会超出图表边界
+        let left = pointX - tooltipRect.width / 2;
+        let top = pointY - tooltipRect.height - 10;
+        
+        // 边界检查
+        if (left < 0) left = 10;
+        if (left + tooltipRect.width > chartContainer.width) {
+            left = chartContainer.width - tooltipRect.width - 10;
+        }
+        if (top < 0) {
+            top = pointY + 10; // 显示在点的下方
+        }
+        
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
+        
+        // 鼠标移开图表区域时自动隐藏tooltip
+        const chartCanvas = this.chart.canvas;
+        const hideTooltipOnLeave = () => {
+            if (tooltip && tooltip.parentElement) {
+                tooltip.remove();
+            }
+            chartCanvas.removeEventListener('mouseleave', hideTooltipOnLeave);
+        };
+        
+        chartCanvas.addEventListener('mouseleave', hideTooltipOnLeave);
     }
 }
 
